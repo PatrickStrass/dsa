@@ -2,14 +2,14 @@
 #include <stdlib.h>
 #include <stdbool.h>
 
-typedef struct {
+typedef struct Node {
     int key;
     char *value;
     struct Node *next;
 } Node;
 
-typedef struct {
-    Node *buckets;
+typedef struct HashTable {
+    Node **buckets;
     int capacity;
     int size;
 } HashTable;
@@ -21,7 +21,7 @@ HashTable* newHashTable(int capacity) {
 
     table->capacity = capacity;
     table->size = 0;
-    table->buckets = (Node *)malloc(capacity * sizeof(Node));
+    table->buckets = (Node **)malloc(capacity * sizeof(Node));
 
     if(table->buckets == NULL) {
         free(table);
@@ -30,9 +30,7 @@ HashTable* newHashTable(int capacity) {
     }
      
     for(int i = 0; i < capacity; i++) {
-        table->buckets[i].key = 0;
-        table->buckets[i].value = NULL;
-        table->buckets[i].next = &(table->buckets[i + 1]);
+        table->buckets[i] = NULL;
     }
 
     return table;
@@ -56,13 +54,13 @@ void put(HashTable *hashTable, int key, char *value) {
     node->next = NULL;
 
     int index = getBucketIndex(hashTable, key);
-    Node *temp = &(hashTable->buckets[index]);
+    Node *temp = hashTable->buckets[index];
 
-    if(temp->value == NULL) {
-        hashTable->buckets[index] = *node;
+    if(!temp) {
+        hashTable->buckets[index] = node;
         hashTable->size++;
     } else {
-        while(temp->value != NULL && temp->next != NULL) {
+        while(temp && temp->next) {
             if(temp->key == key) {
                 temp->value = value;
                 return;
@@ -80,9 +78,10 @@ void display(HashTable *table) {
     Node *node;
 
     for(int i = 0; i < table->capacity; i++) {
-        node = &table->buckets[i];
+        node = table->buckets[i];
 
-        if(node->value == NULL) continue;
+        if(!node) 
+            continue;
 
         printf("%d ->", i);
 
@@ -94,13 +93,47 @@ void display(HashTable *table) {
     }
 }
 
-// char* get(HashTable *HashTable, int key) {
-//     return NULL;
-// }
+Node* get(HashTable *hashTable, int key) {
+    if(!hashTable)
+        return NULL;
 
-// char* remove(HashTable *HashTable, int key) {
+    int index = getBucketIndex(hashTable, key);
+    Node *node = hashTable->buckets[index];
 
-// }
+    while(node) {
+        if(node->key == key)
+            return node;
+
+        node = node->next;
+    }
+
+    return NULL;
+}
+
+void delete(HashTable *hashTable, int key) {
+    if(!hashTable)
+        return;
+    
+    int index = getBucketIndex(hashTable, key);
+    Node *node = hashTable->buckets[index];
+    Node *previous = NULL;
+
+    while(node) {
+        if(node->key == key) {
+            if(previous)
+                previous->next = node->next;
+            else 
+                hashTable->buckets[index] = node->next;
+            
+            node = NULL;
+            hashTable->size = hashTable->size - 1;
+            return;
+        }
+
+        previous = node;
+        node = node->next;
+    }
+}
 
 int main() {
     HashTable *table = newHashTable(10);
@@ -113,9 +146,25 @@ int main() {
     put(table, 7, "Patrick");
     put(table, 0, "Santos");
     put(table, 100, "world");
+    put(table, 1, "a");
+    put(table, 2, "b");
+    put(table, 3, "c");
+    put(table, 4, "d");
+    put(table, 5, "e");
+    put(table, 6, "f");
+    put(table, 8, "g");
+    put(table, 9, "h");
+    put(table, 11, "i");
+    put(table, 12, "j"); 
+    put(table, 19, "k");
 
     display(table);
 
     printf("Hash table size: %d\n", table->size);
     printf("Hash table is empty? %d\n", isEmpty(table));
+
+    Node *output = get(table, 0);
+
+    delete(table, 9);
+    display(table);
 }
