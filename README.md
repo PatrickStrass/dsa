@@ -1,2 +1,2 @@
 # dsa
-A personal reference of implementation of DSA
+A personal reference implementation of DSA
