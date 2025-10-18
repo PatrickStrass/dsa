@@ -30,15 +30,19 @@ public:
 class Compare {
 public:
   bool operator()(Node *a, Node *b) {
-    if (a->freq == b->freq) {
-      // Prioritize character nodes over leaf nodes
-      if (a->ch == '\0' && b->ch != '\0')
-        return true;
-      if (a->ch != '\0' && b->ch == '\0')
-        return false;
-    }
+    if (a->freq != b->freq)
+      return a->freq > b->freq;   // smaller freq = higher priority
 
-    return a->freq > b->freq;
+    bool aLeaf = (a->ch != '\0');
+    bool bLeaf = (b->ch != '\0');
+
+    if (aLeaf != bLeaf)
+      return !aLeaf; // prefer leaf nodes over internal ones
+    
+    if (!aLeaf && !bLeaf) // do not care the order if both are internal nodes
+      return true;
+
+    return a->ch > b->ch; // smaller ASCII char first
   }
 };
 
@@ -80,11 +84,11 @@ vector<string> encode(string msg) {
     Node *right = pq.top();
     pq.pop();
 
-    Node *newNode = new Node(left->freq + right->freq);
-    newNode->left = left;
-    newNode->right = right;
+    Node *merged = new Node(left->freq + right->freq);
+    merged->left = left;
+    merged->right = right;
 
-    pq.push(newNode);
+    pq.push(merged);
   }
 
   Node *root = pq.top();
@@ -95,8 +99,7 @@ vector<string> encode(string msg) {
 }
 
 int main() {
-  string msg = "paralelepipedo"; // p = 3; a = 2; r = 1; l = 2; e = 3; i = 1; d
-                                 // = 1; o = 1
+  string msg = "paralelepipedo"; // p = 3; a = 2; r = 1; l = 2; e = 3; i = 1; d = 1; o = 1
   vector<string> ans = encode(msg);
 
   cout << "Word: " << msg << endl;
