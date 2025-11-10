@@ -1,3 +1,5 @@
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <queue>
 #include <string>
@@ -27,6 +29,11 @@ public:
   }
 };
 
+void gerarArqDot(Node *root, string folder = "dotFiles",
+                 string filename = "arvoreBinGerado.dot");
+void treeNavigation(Node *root, string parent, ofstream &arqSaida, string curr,
+                    string parent_curr);
+
 class Compare {
 public:
   bool operator()(Node *a, Node *b) {
@@ -45,6 +52,55 @@ public:
     return a->ch > b->ch; // smaller ASCII char first
   }
 };
+
+void treeNavigation(Node *root, string parent, ofstream &arqSaida, string curr,
+                    string parent_curr) {
+  if (!root)
+    return;
+
+  string nextParent;
+  string labelData = "";
+
+  // Leaf node represents a character.
+  if (!root->left && !root->right) {
+    if (isalnum(root->ch))
+      nextParent = root->ch;
+    else {
+      nextParent = "chr" + to_string((int)root->ch);
+    }
+  } else {
+    nextParent = to_string(root->freq);
+  }
+
+  if (curr.size() > 0)
+    arqSaida << curr << " [label=\"" << nextParent << "\"];" << endl;
+  else
+    arqSaida << "root [label=\"" << nextParent << "\"];" << endl;
+
+  if (parent.size() > 0) {
+    if (parent_curr.size() > 0)
+      arqSaida << parent_curr << " [label=\"" << parent << "\"];" << endl;
+    else
+      arqSaida << "root [label=\"" << parent << "\"];" << endl;
+
+    if (curr.size() > 0) {
+      labelData = (curr[curr.length() - 1]);
+      labelData = labelData.append("\"]");
+      labelData = " [label=\"" + labelData;
+    }
+
+    arqSaida << (parent_curr.size() > 0 ? parent_curr : "root") << " -> "
+             << (curr.size() > 0 ? curr : "root") << labelData << ";" << endl;
+  }
+
+  if (!root->left && !root->right) {
+
+    return;
+  }
+
+  treeNavigation(root->left, nextParent, arqSaida, curr + '0', curr);
+  treeNavigation(root->right, nextParent, arqSaida, curr + '1', curr);
+}
 
 // Traverse the tree in preorder manner and push the Huffman code of each
 // character
@@ -93,6 +149,11 @@ unordered_map<char, string> encode(string msg) {
   }
 
   Node *root = pq.top();
+
+  gerarArqDot(root);
+
+  root = pq.top();
+
   unordered_map<char, string> codes;
   generateCodes(root, codes, "");
 
@@ -120,7 +181,22 @@ string decode(string encoded, unordered_map<char, string> codes) {
 }
 
 int main() {
-  string msg = "paralelepipedo";
+  // string msg = "paralelepipedo";
+  string msg =
+      "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nam "
+      "nec luctus odio, nec sollicitudin lacus. Nulla malesuada lectus massa, "
+      "quis eleifend nisl vehicula et. Nunc diam magna, maximus mattis rutrum "
+      "a, eleifend sit amet dolor. Mauris ut gravida orci. Proin molestie "
+      "sapien "
+      "sit amet dui sagittis blandit. Donec aliquet tellus et tortor fringilla "
+      "eleifend. Aenean elit "
+      "ante, volutpat quis tortor quis, pulvinar ullamcorper libero. Donec in "
+      "elementum nisi, in luctus mi. Curabitur finibus nulla non lorem tempus "
+      "gravida. Sed sed"
+      "nisi maximus, rhoncus nibh quis, gravida nulla. In velit tortor, "
+      "euismod et faucibus vitae, ornare sed leo. Mauris sodales justo"
+      "erat. Nunc iaculis pretium dui eget rhoncus.";
+
   unordered_map<char, string> codes = encode(msg);
   string encoded = "";
 
@@ -129,14 +205,44 @@ int main() {
 
   string decoded = decode(encoded, codes);
 
-  cout << "Word: " << msg << endl;
-  cout << "Encoded: " << encoded << endl;
+  cout << "Word: " << msg << endl << endl;
+  cout << "Encoded: " << encoded << endl << endl;
 
   cout << "Codes:" << endl;
   for (auto &pair : codes)
     cout << "'" << pair.first << "': " << "\"" << pair.second << "\"" << endl;
 
-  cout << "Decoded: " << decoded << endl;
+  cout << "Decoded: " << decoded << endl << endl;
+  system("dot -Tsvg dotFiles\\ArvoreBinGerado.dot -o "
+         "svgFiles\\ArvoreBinGerado.svg");
+  cout << "SVG Gerado!\n";
 
   return 0;
+}
+
+void gerarArqDot(Node *root, string folder, string filename) {
+  filesystem::create_directories(folder);
+  filesystem::create_directories("svgFiles");
+
+  string filepath = folder + "/" + filename;
+  ofstream arqSaida(filepath);
+
+  if (!arqSaida.is_open()) {
+    cerr << "Error opening file: " << filepath << endl;
+    return;
+  }
+
+  cout << "File created successfully: " << filepath << endl;
+
+  arqSaida << "strict digraph ArvoreBinaria {\n";
+  arqSaida << "node [shape=circle, style=\"filled, radial\", "
+              "fontname=\"Arial Black\", color=\"white:#770000\", "
+              "fillcolor=\"white:#FF7700\", gradientangle=\"110\"];\n";
+  arqSaida << "edge [style=dashed];\n";
+
+  treeNavigation(root, "", arqSaida, "", "");
+  arqSaida << "}\n";
+
+  arqSaida.close();
+  cout << "DOT file saved successfully!\n";
 }
