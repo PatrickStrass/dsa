@@ -75,10 +75,11 @@ public:
       if (!leafs[ch]) {
         encoded += getCode(NYT);
         encoded += getNBits(ch, 8);
-        update(ch);
+        createNode(ch);
+        update(leafs[ch]->parent);
       } else {
         encoded += getCode(leafs[ch]);
-        update(ch);
+        update(leafs[ch]);
       }
     }
 
@@ -104,28 +105,6 @@ public:
     return decoded;
   }
 
-  string getCode(Node *leaf) {
-    string code;
-    Node *current = leaf;
-
-    while (current && current->parent) {
-      if (current == current->parent->left)
-        code = '0' + code;
-      else
-        code = '1' + code;
-
-      current = current->parent;
-    }
-
-    return code;
-  }
-
-  void codeTable() {
-    for (auto &it : codes)
-      cout << it.first << ": " << it.second << endl;
-  }
-
-private:
   void createNode(unsigned char ch) {
     NYT->left = new Node();
     NYT->right = new Node();
@@ -150,6 +129,28 @@ private:
     NYT->ch = '\0';
   }
 
+  string getCode(Node *leaf) {
+    string code;
+    Node *current = leaf;
+
+    while (current && current->parent) {
+      if (current == current->parent->left)
+        code = '0' + code;
+      else
+        code = '1' + code;
+
+      current = current->parent;
+    }
+
+    return code;
+  }
+
+  void codeTable() {
+    for (auto &it : codes)
+      cout << it.first << ": " << it.second << endl;
+  }
+
+private:
   Node *getBlockLeader(Node *node) {
     Node *highest = nullptr;
 
@@ -202,25 +203,16 @@ private:
       *node = temp;
   }
 
-  void update(unsigned char ch) {
-    Node *leader = nullptr; // block leader
-    Node *leafIncrement = nullptr;
-    Node *node = leafs[ch];
+  void update(Node *node) {
+    Node *leader = getBlockLeader(node); // block leader
+    Node *leafIncrement = node->right;
 
-    if (!node) {
-      createNode(ch);
-      node = NYT->parent;
-      leafIncrement = node->right;
-    } else {
-      leader = getBlockLeader(node);
+    if (leader)
+      swapNodes(node, leader);
 
-      if (leader)
-        swapNodes(node, leader);
-
-      if (node->parent == NYT->parent) {
-        leafIncrement = node;
-        node = node->parent;
-      }
+    if (node->parent == NYT->parent) {
+      leafIncrement = node;
+      node = node->parent;
     }
 
     while (node != root)
