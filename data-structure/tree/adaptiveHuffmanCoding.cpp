@@ -71,20 +71,14 @@ public:
   }
 
   string encode(string msg) {
-    for (int i = 0; i < msg.size(); i++) {
-      if (i == 0)
-        update(msg[i]);
-
-      else {
-        if (!leafs[msg[i]]) {             // first read of character
-          encoded += getCode(NYT);        // output code of NYT
-          encoded += getNBits(msg[i], 8); // output byte of ch
-          createNode(msg[i]);
-          update(leafs[msg[i]]->parent->ch);
-        } else {
-          encoded += getCode(leafs[msg[i]]); // output code of node
-          update(leafs[msg[i]]->ch);
-        }
+    for (unsigned char ch : msg) {
+      if (!leafs[ch]) {
+        encoded += getCode(NYT);
+        encoded += getNBits(ch, 8);
+        update(ch);
+      } else {
+        encoded += getCode(leafs[ch]);
+        update(ch);
       }
     }
 
