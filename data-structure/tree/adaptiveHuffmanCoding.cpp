@@ -34,16 +34,9 @@ public:
     parent = nullptr, left = nullptr, right = nullptr;
   }
 
-  Node(unsigned char ch, int freq) {
+  Node(unsigned char ch) {
     this->ch = ch;
-    this->freq = freq;
-    number = 0;
-    parent = nullptr, left = nullptr, right = nullptr;
-  }
-
-  Node(int freq) {
-    this->ch = '\0';
-    this->freq = freq;
+    freq = 0;
     number = 0;
     parent = nullptr, left = nullptr, right = nullptr;
   }
@@ -65,18 +58,19 @@ public:
   string encoded, decoded;
 
   HuffmanTree() {
-    root = new Node('\0', 0);
+    implicitNumber = ROOT_NODE_NUMBER - 1;
+    root = new Node();
     NYT = root;
-    implicitNumber = H_MAX * 2 + 1;
   }
 
   string encode(string msg) {
-    for (unsigned char ch : msg) {
+    for (unsigned char ch : msg) { // TODO bug when insert d
       if (!leafs[ch]) {
         encoded += getCode(NYT);
         encoded += getNBits(ch, 8);
         createNode(ch);
-        update(leafs[ch]->parent);
+        // update(leafs[ch]->parent);
+        update(leafs[ch]);
       } else {
         encoded += getCode(leafs[ch]);
         update(leafs[ch]);
@@ -91,7 +85,8 @@ public:
   // TODO bugs?
   string decode(string bits) {
     // for (int i = 0; i < bits.size(); i++) {
-    //   if (i == 0)
+    //
+    //   if (i == 0
     //     update(bits[i]);
     //   else {
     //     unsigned char ch = getCode(root);
@@ -107,7 +102,7 @@ public:
 
   void createNode(unsigned char ch) {
     NYT->left = new Node();
-    NYT->right = new Node();
+    NYT->right = new Node(ch);
 
     NYT->left->parent = NYT;
     NYT->right->parent = NYT;
@@ -115,7 +110,6 @@ public:
     NYT->ch = '\0';
 
     leafs[ch] = NYT->right;
-    leafs[ch]->ch = ch;
 
     // Number the nodes
     NYT->number = implicitNumber--;
@@ -126,7 +120,6 @@ public:
     numbers[leafs[ch]->number] = leafs[ch];
 
     NYT = NYT->left;
-    NYT->ch = '\0';
   }
 
   string getCode(Node *leaf) {
@@ -204,8 +197,8 @@ private:
   }
 
   void update(Node *node) {
-    Node *leader = getBlockLeader(node); // block leader
-    Node *leafIncrement = node->right;
+    Node *leader = getBlockLeader(node);
+    Node *leafIncrement = nullptr;
 
     if (leader)
       swapNodes(node, leader);
@@ -215,7 +208,7 @@ private:
       node = node->parent;
     }
 
-    while (node != root)
+    while (node) // node != root??
       slideAndIncrement(&node);
 
     if (leafIncrement)
@@ -223,9 +216,13 @@ private:
   }
 
   void swapNodes(Node *a, Node *b) {
-    Node *parent, *temp = nullptr;
-    int i;
+    if (a == nullptr || b == nullptr || a == b)
+      return;
 
+    Node *parent = nullptr, *temp = nullptr;
+    int i = 0;
+
+    // special swap if they have the same parent
     if (a->parent == b->parent) {
       parent = a->parent;
 
@@ -236,26 +233,18 @@ private:
         parent->left = a;
         parent->right = b;
       }
+    } else {
+      // Different parents: adjust parent pointers properly
+      if (a->parent->left == a)
+        a->parent->left = b;
+      else
+        a->parent->right = b;
 
-      // Swap nodes in numbers hash map and their numbers
-      temp = numbers[a->number];
-      numbers[a->number] = numbers[b->number];
-      numbers[b->number] = temp;
-
-      i = a->number;
-      a->number = b->number;
-      b->number = i;
+      if (b->parent->left == b)
+        b->parent->left = a;
+      else
+        b->parent->right = a;
     }
-
-    if (a->parent->left == a)
-      a->parent->left = b;
-    else
-      a->parent->right = a;
-
-    if (b->parent->left == b)
-      b->parent->left = a;
-    else
-      b->parent->right = b;
 
     // Swap nodes in numbers hash map and their numbers
     temp = numbers[a->number];
