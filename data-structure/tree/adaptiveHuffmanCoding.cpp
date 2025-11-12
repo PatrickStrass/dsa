@@ -60,6 +60,8 @@ public:
   HuffmanTree() {
     implicitNumber = ROOT_NODE_NUMBER - 1;
     root = new Node();
+    root->number = implicitNumber--;
+    numbers[root->number] = root;
     NYT = root;
   }
 
@@ -69,8 +71,7 @@ public:
         encoded += getCode(NYT);
         encoded += getNBits(ch, 8);
         createNode(ch);
-        // update(leafs[ch]->parent);
-        update(leafs[ch]);
+        update(leafs[ch]->parent);
       } else {
         encoded += getCode(leafs[ch]);
         update(leafs[ch]);
@@ -163,12 +164,10 @@ private:
   }
 
   void slideNode(Node *node) {
-    unsigned long freq;
+    if (!node)
+      return;
 
-    if (!node->isLeaf())
-      freq = node->freq + 1;
-    else
-      freq = node->freq;
+    unsigned long freq = node->freq;
 
     for (int i = node->number + 1; i < ROOT_NODE_NUMBER; i++) {
       if (freq >= numbers[i]->freq) {
@@ -219,41 +218,45 @@ private:
     if (a == nullptr || b == nullptr || a == b)
       return;
 
-    Node *parent = nullptr, *temp = nullptr;
-    int i = 0;
-
-    // special swap if they have the same parent
-    if (a->parent == b->parent) {
-      parent = a->parent;
-
-      if (parent->left == a) {
-        parent->left = b;
-        parent->right = a;
-      } else {
-        parent->left = a;
-        parent->right = b;
-      }
-    } else {
-      // Different parents: adjust parent pointers properly
-      if (a->parent->left == a)
+    // Case: same parent (siblings)
+    if (a->parent == b->parent && a->parent) {
+      if (a->parent->left == a && a->parent->right == b) {
         a->parent->left = b;
-      else
+        a->parent->right = a;
+      } else if (a->parent->left == b && a->parent->right == a) {
+        a->parent->left = a;
         a->parent->right = b;
+      }
 
-      if (b->parent->left == b)
-        b->parent->left = a;
-      else
-        b->parent->right = a;
+      swap(numbers[a->number], numbers[b->number]);
+      swap(a->number, b->number);
+
+      return;
     }
 
-    // Swap nodes in numbers hash map and their numbers
-    temp = numbers[a->number];
-    numbers[a->number] = numbers[b->number];
-    numbers[b->number] = temp;
+    // Different parents: attach swapped children to their new parents
+    Node *aParent = a->parent;
+    Node *bParent = b->parent;
 
-    i = a->number;
-    a->number = b->number;
-    b->number = i;
+    if (aParent) {
+      if (aParent->left == a)
+        aParent->left = b;
+      else if (aParent->right == a)
+        aParent->right = b;
+    }
+    if (bParent) {
+      if (bParent->left == b)
+        bParent->left = a;
+      else if (bParent->right == b)
+        bParent->right = a;
+    }
+
+    a->parent = bParent;
+    b->parent = aParent;
+
+    // Swap entries in numbers map and the numeric labels
+    swap(numbers[a->number], numbers[b->number]);
+    swap(a->number, b->number);
   }
 };
 
