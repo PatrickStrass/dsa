@@ -87,7 +87,7 @@ public:
         update(leafs[ch]);
       }
 
-      printTree(); // Print tree after each update
+      // printTree(); // Print tree after each update
     }
 
     gerarArqDot(root);
@@ -95,20 +95,50 @@ public:
     return encoded;
   }
 
-  // TODO bugs?
   string decode(string bits) {
-    // for (int i = 0; i < bits.size(); i++) {
-    //
-    //   if (i == 0
-    //     update(bits[i]);
-    //   else {
-    //     unsigned char ch = getCode(root);
-    //
-    //     if (ch == NYT->ch) {
-    //       decoded += getNBits(ch, 8);
-    //     }
-    //   }
-    // }
+    Node *current = root;
+
+    int i = 0;
+    while (i < bits.size()) {
+      // Traverse the tree
+      while (!current->isLeaf()) {
+        if (i >= bits.size())
+          break;
+        if (bits[i] == '0')
+          current = current->left;
+        else
+          current = current->right;
+
+        i++;
+      }
+
+      // Case 1: current is NYT — new character
+      if (current == NYT) {
+        if (i + 8 > bits.size())
+          break;
+
+        unsigned char ch = 0;
+        for (int j = 0; j < 8; j++)
+          ch = (ch << 1) | (bits[i + j] - '0');
+
+        i += 8;
+
+        decoded.push_back(ch);
+        createNode(ch);
+        update(leafs[ch]->parent);
+        current = root;
+      }
+
+      // Case 2: current is known character
+      else {
+        unsigned char ch = current->ch;
+        decoded.push_back(ch);
+        update(leafs[ch]);
+        current = root;
+      }
+
+      // printTree(); // Print tree after each update
+    }
 
     return decoded;
   }
@@ -417,5 +447,5 @@ void gerarArqDot(Node *root, string folder, string filename) {
   arqSaida << "}\n";
 
   arqSaida.close();
-  cout << "DOT file saved successfully!\n";
+  cout << "DOT file saved successfully!\n\n";
 }
